@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Visor KML Premium</title>
+    <title>GeoVisor Pro — KML & Coordenadas UTM 19N / NAD27</title>
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Leaflet CSS -->
@@ -11,34 +11,222 @@
   </head>
   <body>
     <div id="app">
-      <div class="sidebar">
-        <header>
-          <h1>KML Explorer</h1>
-          <p>Sube tu archivo KML para visualizarlo en el mapa</p>
+      <aside class="sidebar">
+        <header class="app-header">
+          <div class="header-title-row">
+            <svg class="app-logo" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+              <line x1="9" y1="3" x2="9" y2="18"></line>
+              <line x1="15" y1="6" x2="15" y2="21"></line>
+            </svg>
+            <h1>GeoVisor Pro</h1>
+          </div>
+          <p>Visor KML y Generador de Coordenadas UTM 19N</p>
         </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="sidebar-tabs" role="tablist">
+          <button id="tab-points-btn" class="tab-btn active" role="tab" aria-selected="true" data-tab="tab-points">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            Crear Punto
+          </button>
+          <button id="tab-list-btn" class="tab-btn" role="tab" aria-selected="false" data-tab="tab-list">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            Puntos <span id="points-count-badge" class="badge">0</span>
+          </button>
+          <button id="tab-kml-btn" class="tab-btn" role="tab" aria-selected="false" data-tab="tab-kml">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            KML / Capas
+          </button>
+        </nav>
+
+        <!-- Tab 1: Crear Punto con Coordenadas -->
+        <section id="tab-points" class="tab-content active">
+          <form id="create-point-form" class="point-form" onsubmit="return false;">
+            <!-- Selector de Sistema de Coordenadas -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="coord-system-select">Sistema de Coordenadas</label>
+                <span class="system-pill" id="system-badge">EPSG:32619</span>
+              </div>
+              <div class="select-wrapper">
+                <select id="coord-system-select" class="form-control">
+                  <option value="WGS84_UTM19N" selected>WGS84 — UTM Zona 19N (Métrico)</option>
+                  <option value="NAD27_UTM19N">NAD27 — UTM Zona 19N (Rep. Dom. / Caribe)</option>
+                  <option value="WGS84_GEO">Decimal Geográfico — WGS84 (Lat / Lon)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Botón para modo Clic en Mapa -->
+            <button type="button" id="map-pick-btn" class="btn-secondary map-pick-btn" title="Hacer clic en el mapa para capturar coordenadas">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+              <span>Capturar clic en el mapa</span>
+            </button>
+
+            <!-- Entradas de Coordenadas -->
+            <div class="coords-grid">
+              <div class="form-group">
+                <label id="coord-label-1" for="coord-input-1">
+                  <span class="axis-badge">X</span>
+                  <span>Este (X) [m]</span>
+                </label>
+                <input type="text" id="coord-input-1" class="form-control" placeholder="Ej: 401690.88" autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label id="coord-label-2" for="coord-input-2">
+                  <span class="axis-badge">Y</span>
+                  <span>Norte (Y) [m]</span>
+                </label>
+                <input type="text" id="coord-input-2" class="form-control" placeholder="Ej: 2044220.44" autocomplete="off" />
+              </div>
+            </div>
+
+            <!-- Nombre del Punto -->
+            <div class="form-group">
+              <label for="point-name">Nombre / Etiqueta del Punto</label>
+              <input type="text" id="point-name" class="form-control" placeholder="Ej: Vértice A / Punto 1" />
+            </div>
+
+            <!-- Color del Marcador -->
+            <div class="form-group">
+              <label>Color del Marcador</label>
+              <div class="color-picker-row">
+                <button type="button" class="color-btn active" data-color="#3b82f6" style="--c: #3b82f6;" title="Azul"></button>
+                <button type="button" class="color-btn" data-color="#10b981" style="--c: #10b981;" title="Esmeralda"></button>
+                <button type="button" class="color-btn" data-color="#f59e0b" style="--c: #f59e0b;" title="Ámbar"></button>
+                <button type="button" class="color-btn" data-color="#ef4444" style="--c: #ef4444;" title="Rojo"></button>
+                <button type="button" class="color-btn" data-color="#8b5cf6" style="--c: #8b5cf6;" title="Púrpura"></button>
+                <button type="button" class="color-btn" data-color="#ec4899" style="--c: #ec4899;" title="Rosa"></button>
+              </div>
+            </div>
+
+            <!-- Notas / Descripción opcional -->
+            <div class="form-group">
+              <label for="point-desc">Descripción / Notas (Opcional)</label>
+              <input type="text" id="point-desc" class="form-control" placeholder="Ej: Hito topográfico o referencia" />
+            </div>
+
+            <!-- Tarjeta de Conversión en Vivo -->
+            <div id="live-conversion-card" class="conversion-card">
+              <div class="conversion-header">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                <span>Equivalencias en tiempo real</span>
+              </div>
+              <div class="conversion-grid">
+                <div class="conversion-item" id="conv-geo">
+                  <span class="conv-title">Geográfico WGS84:</span>
+                  <span class="conv-val" id="conv-geo-val">—</span>
+                </div>
+                <div class="conversion-item" id="conv-wgs-utm">
+                  <span class="conv-title">WGS84 UTM 19N:</span>
+                  <span class="conv-val" id="conv-wgs-val">—</span>
+                </div>
+                <div class="conversion-item" id="conv-nad-utm">
+                  <span class="conv-title">NAD27 UTM 19N:</span>
+                  <span class="conv-val" id="conv-nad-val">—</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="point-form-error" class="form-error" style="display: none;"></div>
+
+            <!-- Botón Crear Punto -->
+            <button type="submit" id="add-point-btn" class="btn-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
+              <span>Crear y Ubicar en el Mapa</span>
+            </button>
+          </form>
+        </section>
+
+        <!-- Tab 2: Lista de Puntos Creados -->
+        <section id="tab-list" class="tab-content">
+          <div class="points-list-header">
+            <div class="points-actions">
+              <button id="export-kml-btn" class="btn-action" title="Exportar puntos a archivo KML">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                KML
+              </button>
+              <button id="export-geojson-btn" class="btn-action" title="Exportar puntos a GeoJSON">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                GeoJSON
+              </button>
+              <button id="clear-points-btn" class="btn-action btn-danger-action" title="Eliminar todos los puntos creados">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Limpiar
+              </button>
+            </div>
+          </div>
+          <div id="points-container" class="points-container">
+            <div class="empty-state">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 0.75rem auto; opacity: 0.5; display: block;"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              <p>Aún no has creado ningún punto.</p>
+              <button type="button" class="btn-link" id="goto-create-point-btn">Crear mi primer punto</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 3: KML / Capas -->
+        <section id="tab-kml" class="tab-content">
+          <div class="upload-container">
+            <label for="kml-upload" class="upload-button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Seleccionar archivo KML / KMZ
+            </label>
+            <input type="file" id="kml-upload" accept=".kml,.kmz" />
+            <span id="file-name" class="file-name">Ningún archivo seleccionado</span>
+          </div>
+
+          <div class="info-panel" id="info-panel">
+            <h3>Capas y Entidades KML</h3>
+            <div id="kml-details">
+              <p class="empty-state">Carga un archivo para ver detalles</p>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <!-- Main Map Area -->
+      <main class="map-container">
+        <div id="map"></div>
         
-        <div class="upload-container">
-          <label for="kml-upload" class="upload-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            Seleccionar archivo KML / KMZ
-          </label>
-          <input type="file" id="kml-upload" accept=".kml,.kmz" />
-          <span id="file-name" class="file-name">Ningún archivo seleccionado</span>
-        </div>
-        
-        <div class="info-panel" id="info-panel">
-          <h3>Detalles del KML</h3>
-          <div id="kml-details">
-            <p class="empty-state">Carga un archivo para ver detalles</p>
+        <!-- Live Map Coordinates Bar -->
+        <div id="map-coords-bar" class="map-coords-bar">
+          <div class="coord-bar-item">
+            <span class="coord-bar-lbl">Lat / Lon:</span>
+            <span id="cursor-geo-display" class="coord-bar-val">—</span>
+          </div>
+          <div class="coord-bar-divider"></div>
+          <div class="coord-bar-item">
+            <span class="coord-bar-lbl">WGS84 19N:</span>
+            <span id="cursor-utm-display" class="coord-bar-val">—</span>
+          </div>
+          <div class="coord-bar-divider"></div>
+          <div class="coord-bar-item">
+            <span class="coord-bar-lbl">NAD27 19N:</span>
+            <span id="cursor-nad-display" class="coord-bar-val">—</span>
           </div>
         </div>
-      </div>
-      <div class="map-container">
-        <div id="map"></div>
-        <button id="locate-btn" class="locate-btn" title="Mi ubicación">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
-        </button>
-      </div>
+
+        <!-- Float Map Controls -->
+        <div class="map-floating-controls">
+          <button id="zoom-points-btn" class="float-btn" title="Centrar todos los puntos creados" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg>
+          </button>
+          <button id="locate-btn" class="locate-btn float-btn" title="Mi ubicación GPS">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+          </button>
+        </div>
+
+        <!-- Mode banner when capturing map click -->
+        <div id="map-click-banner" class="map-click-banner" style="display: none;">
+          <div class="click-banner-content">
+            <span class="pulsing-dot"></span>
+            <span>Haz clic sobre el mapa para capturar las coordenadas</span>
+            <button id="cancel-pick-btn" class="btn-xs">Cancelar</button>
+          </div>
+        </div>
+      </main>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
